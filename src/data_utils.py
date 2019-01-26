@@ -2,6 +2,9 @@
 import os 
 import time 
 import json 
+import emoji
+import pandas as pd
+import numpy as np
 
 def transform_to_temporal(temporal_path, root_dir): 
     
@@ -68,3 +71,37 @@ def count_sent_recieved(data, sender_name, direct_only=False):
                 else: 
                     pass 
     return count_send, count_recieved
+
+def find_emoji(sentence): 
+    emojis = [] 
+    for token in sentence: 
+        if token in emoji.UNICODE_EMOJI: 
+            emojis.append(token)
+    return emojis 
+
+def construct_time_count(message_list, key): 
+    all_msg = {} 
+    for msg in message_list: 
+        time_obj = time.gmtime(int(msg['timestamp_ms']/1000))
+        year, month, day = time_obj.tm_year, time_obj.tm_mon, time_obj.tm_mday
+        date = pd.Timestamp(year=int(year), month=int(month), day=int(day))
+        if date in all_msg: 
+            all_msg[date] += msg[key] 
+        else: 
+            all_msg[date] = msg[key]
+    return all_msg
+
+def construct_time_avg(message_list, key): 
+    all_msg = {} 
+    for msg in message_list: 
+        time_obj = time.gmtime(int(msg['timestamp_ms']/1000))
+        year, month, day = time_obj.tm_year, time_obj.tm_mon, time_obj.tm_mday
+        date = pd.Timestamp(year=int(year), month=int(month), day=int(day))
+        if msg[key]: 
+            if date in all_msg: 
+                all_msg[date].append(msg[key])
+            else: 
+                all_msg[date] = [msg[key]]
+    for day in all_msg: 
+        all_msg[day] = np.mean(all_msg[day])
+    return all_msg
